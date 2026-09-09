@@ -28,7 +28,7 @@
 
     courses: [
       /* ---- 周一 ---- */
-      { id: 'm1', name: '恶意代码分析与处理', teacher: '李永飞', location: '信息楼403', day: 1, start: 3, end: 4, weeks: { from: 2, to: 5, parity: 'all' }, tag: '上机' },
+      { id: 'm1', name: '恶意代码分析与处理', teacher: '李永飞', location: '信息楼403', day: 1, start: 3, end: 4, weeks: { from: 2, to: 5, parity: 'all' }, tag: '上机', weekRemark: { 2: '不确定上不上' } },
       { id: 'm2', name: '习近平新时代中国特色社会主义思想概论', teacher: '张玉琛', location: '致远楼20404', day: 1, start: 5, end: 6, weeks: { from: 1, to: 16, parity: 'all' } },
       { id: 'm3', name: '信息论与编码', teacher: '范玉涛', location: '致远楼20706', day: 1, start: 7, end: 8, weeks: { from: 1, to: 7, parity: 'all' } },
       /* ---- 周二 ---- */
@@ -36,7 +36,7 @@
       { id: 't2', name: '网络安全', teacher: '王晓菊', location: '明德楼(东院)30405', day: 2, start: 3, end: 4, weeks: { from: 1, to: 16, parity: 'all' } },
       { id: 't3', name: '网络安全', teacher: '王晓菊', location: '信息楼-网络工程实验室', day: 2, start: 5, end: 6, weeks: { from: 8, to: 16, parity: 'all' }, tag: '上机', note: '课内实验' },
       { id: 't4', name: '应用密码学', teacher: '张艺博', location: '明德楼(东院)30106', day: 2, start: 7, end: 8, weeks: { from: 1, to: 16, parity: 'all' } },
-      { id: 't5', name: '入侵检测技术', teacher: '姜延丰', location: '网络工程实验室', day: 2, start: 9, end: 10, weeks: { from: 1, to: 10, parity: 'all' }, tag: '上机', note: '第10周交报告' },
+      { id: 't5', name: '入侵检测技术', teacher: '姜延丰', location: '网络工程实验室', day: 2, start: 9, end: 10, weeks: { from: 4, to: 10, parity: 'all' }, tag: '上机', note: '第10周交报告，前3周不上' },
       /* ---- 周三 ---- */
       { id: 'w1', name: '入侵检测技术', teacher: '姜延丰', location: '博观楼10302', day: 3, start: 3, end: 4, weeks: { from: 1, to: 10, parity: 'all' } },
       /* ---- 周四 ---- */
