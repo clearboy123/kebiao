@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>我的课表</title>
+<meta name="theme-color" content="#3d6df2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="课表">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar" id="topbar">
+  <div class="topbar-main">
+    <div class="app-title" id="appTitle">我的课表</div>
+    <div class="term-label" id="termLabel"></div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn-icon" id="btnToday" title="回到今天">今</button>
+    <button class="btn-icon" id="btnPrev" title="上一周">‹</button>
+    <button class="btn-icon" id="btnNext" title="下一周">›</button>
+  </div>
+</header>
+
+<main class="content">
+  <!-- 视图1：今天 -->
+  <section class="view" id="view-today">
+    <div class="today-head">
+      <div class="date-chip" id="todayDate">—</div>
+      <div class="week-chip" id="todayWeek">—</div>
+    </div>
+    <div id="todayNext" class="next-banner hidden"></div>
+    <div id="todayList" class="card-list"></div>
+    <div id="tomorrowBlock"></div>
+  </section>
+
+  <!-- 视图2：本周课表 -->
+  <section class="view hidden" id="view-week">
+    <div class="week-head">
+      <div class="week-title" id="weekTitle">—</div>
+      <div class="week-sub" id="weekSub"></div>
+    </div>
+    <div class="grid-scroll" id="gridScroll">
+      <div class="grid-wrap" id="gridWrap"></div>
+    </div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <!-- 视图3：说明与设置 -->
+  <section class="view hidden" id="view-about">
+    <div class="panel" id="statPanel"></div>
+    <div class="panel">
+      <div class="panel-title">学期设置</div>
+      <label class="field">第 1 周周一日期
+        <input type="date" id="setStartDate">
+      </label>
+      <label class="field">当前显示周数（0 = 自动按日期计算）
+        <input type="number" id="setWeek" min="0" max="40" step="1">
+      </label>
+      <label class="field toggle"><span>课表显示周六、周日</span>
+        <input type="checkbox" id="setShowWeekend" checked>
+      </label>
+      <button class="btn" id="btnSave">保存设置</button>
+      <button class="btn ghost" id="btnReset">恢复默认设置</button>
+    </div>
+    <div class="panel">
+      <div class="panel-title">分享与使用</div>
+      <p>把本页网址发给同学，大家都能打开查看。手机上可在浏览器菜单中选
+        <b>「添加到主屏幕」</b>，之后像 App 一样点开。</p>
+      <p>数据保存在 <code>js/schedule-data.js</code>，改课表只动那一个文件。</p>
+    </div>
+  </section>
+</main>
+
+<nav class="tabbar">
+  <button class="tab active" data-view="today">
+    <span class="tab-icon">◷</span><span>今天</span></button>
+  <button class="tab" data-view="week">
+    <span class="tab-icon">▦</span><span>本周</span></button>
+  <button class="tab" data-view="about">
+    <span class="tab-icon">⚙</span><span>设置</span></button>
+</nav>
+
+<script src="js/core.js"></script>
+<script src="js/schedule-data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
