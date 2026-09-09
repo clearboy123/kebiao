@@ -249,21 +249,42 @@
     if (isFinite(sh) && sh > 0) SH = sh;
     if (isFinite(cw) && cw > 0) COLW = cw;
   }
+  /* 按手机屏幕把周课表压缩到一屏：纵(节次行)横(天数)都自适应 */
+  function fitGridMetrics(show7) {
+    var nPer = Math.max(1, S.periods.length || 10);
+    var innerH = window.innerHeight || 700;
+    var innerW = window.innerWidth || 380;
+    var chromeTop = 64, chromeBottom = 76;      // 顶栏+状态栏 / 底栏+safe
+    var headArea = 74, legendArea = 32;          // 周标题区 + 图例区
+    var padH = 14, wrapPad = 14, dayHeadH = 28, buffer = 4;
+    var availGrid = innerH - chromeTop - chromeBottom - headArea - legendArea - padH - wrapPad - dayHeadH - buffer;
+    var sh = Math.max(30, Math.min(64, Math.floor(availGrid / nPer)));
+    var tcol = S.showTimes === false ? 36 : 64;
+    var usable = innerW - 20 - wrapPad - tcol - 2;
+    var cw = Math.max(42, Math.floor(usable / (show7 ? 7 : 5)));
+    SH = sh; COLW = cw; TCOLW = tcol;
+    var root = document.documentElement.style;
+    root.setProperty('--sh', sh + 'px');
+    root.setProperty('--colw', cw + 'px');
+    root.setProperty('--tcolw', tcol + 'px');
+  }
 
   function weekStartISO(weekNum) {
     return C.addDays(semesterStart(), (weekNum - 1) * 7);
   }
 
   function renderWeek() {
-    readGridMetrics();
     var wk = selectedWeek();
     curWeek = wk;
     var monday = C.parseISO(weekStartISO(wk));
+    var hasWeekendItem = (S.courses || []).some(function (c) { return c.day >= 6; }) ||
+                         CUSTOMS.some(function (x) { return x.day >= 6; });
+    var show7 = SET.showWeekend && hasWeekendItem;
+    fitGridMetrics(show7);   // 自适应：一屏放下所有节次
     var days = [];
-    for (var i = 1; i <= 7; i++) {
+    for (var i = 1; i <= (show7 ? 7 : 5); i++) {
       days.push({ wd: i, iso: C.toISO(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i - 1)) });
     }
-    if (!SET.showWeekend) days = days.slice(0, 5);
 
     $('weekTitle').textContent = '第 ' + wk + ' 周';
     var todayIso = C.toISO(now());
@@ -410,6 +431,7 @@
    * 导航与绑定
    * ============================================================ */
   function switchView(v) {
+    if (v !== 'week' && window.__closeCustomSheet) window.__closeCustomSheet();
     view = v;
     ['today', 'week', 'about'].forEach(function (k) {
       $('view-' + k).classList.toggle('hidden', k !== v);
@@ -522,6 +544,8 @@
     saveCustoms(CUSTOMS);
     $('cusTitle').value = ''; $('cusNote').value = ''; $('cusWeeks').value = '';
     renderCustomList();
+    if (view === 'today') renderToday();
+    if (view === 'week') renderWeek();
   }
   function removeCustom(id) {
     CUSTOMS = CUSTOMS.filter(function (x) { return String(x.id) !== String(id); });
@@ -541,6 +565,14 @@
     // 结束节次默认跟随开始节次
     var cs = $('cusStart'), ce = $('cusEnd');
     if (cs && ce) cs.addEventListener('change', function () { if (+ce.value < +cs.value) ce.value = cs.value; });
+    // 悬浮＋号 → 打开/关闭面板
+    var sheet = $('customSheet'), back = $('sheetBackdrop'), close = $('btnCloseSheet');
+    function openSheet() { if (sheet) { sheet.classList.remove('hidden'); renderCustomList(); } }
+    function closeSheet() { if (sheet) sheet.classList.add('hidden'); }
+    if ($('fabCustom')) $('fabCustom').addEventListener('click', openSheet);
+    if (back) back.addEventListener('click', closeSheet);
+    if (close) close.addEventListener('click', closeSheet);
+    window.__closeCustomSheet = closeSheet;
   }
   bindCustomUI();
 
