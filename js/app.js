@@ -241,6 +241,7 @@
   }
   /* 周课表布局参数 */
   var SH = 58, COLW = 102, TCOLW = 66;
+  var CW_MAIN = 102, CW_WKND = 102;
 
   function readGridMetrics() {
     var rs = getComputedStyle(document.documentElement);
@@ -267,6 +268,10 @@
     root.setProperty('--sh', sh + 'px');
     root.setProperty('--colw', cw + 'px');
     root.setProperty('--tcolw', tcol + 'px');
+    /* 列宽：工作日宽，周六日按 0.62 比例变窄，7列也能一屏 */
+    var usableW = (window.innerWidth || 380) - 20 - wrapPad - tcol - 2;
+    if (show7) { CW_MAIN = usableW / (5 + 2 * 0.62); CW_WKND = CW_MAIN * 0.62; }
+    else { CW_MAIN = Math.max(56, usableW / 5); CW_WKND = CW_MAIN; }
   }
 
   function weekStartISO(weekNum) {
@@ -277,10 +282,8 @@
     var wk = selectedWeek();
     curWeek = wk;
     var monday = C.parseISO(weekStartISO(wk));
-    var hasWeekendItem = (S.courses || []).some(function (c) { return c.day >= 6; }) ||
-                         CUSTOMS.some(function (x) { return x.day >= 6; });
-    var show7 = SET.showWeekend && hasWeekendItem;
-    fitGridMetrics(show7);   // 自适应：一屏放下所有节次
+    var show7 = !!SET.showWeekend;      // 是否显示周六周日（默认开，防以后周末有课）
+    fitGridMetrics(show7);              // 自适应：一屏放下所有节次
     var days = [];
     for (var i = 1; i <= (show7 ? 7 : 5); i++) {
       days.push({ wd: i, iso: C.toISO(new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i - 1)) });
@@ -301,7 +304,7 @@
     for (var h = 0; h < days.length; h++) {
       var d = days[h];
       var isToday = d.iso === todayIso;
-      head += '<div class="day-cell' + (isToday ? ' today' : '') + '">' +
+      head += '<div class="day-cell' + (isToday ? ' today' : '') + '" style="width:' + Math.floor(d.wd >= 6 ? CW_WKND : CW_MAIN) + 'px">' +
         '<span class="weekday">' + (d.wd === 7 ? '周日' : '周' + '一二三四五六'.charAt(d.wd - 1)) + '</span>' +
         '<span class="daynum">' + fmtMDs(d.iso) + '</span></div>';
     }
@@ -319,15 +322,16 @@
     for (var k = 0; k < days.length; k++) {
       var dd = days[k];
       var isToday2 = dd.iso === todayIso;
+      var dayW = dd.wd >= 6 ? CW_WKND : CW_MAIN;
       var active = dayCourses(dd.wd, wk).map(function (c) { return { c: c, active: true, start: c.start, end: c.end }; });
       var cusItems = customsOnDay(dd.wd, wk).map(function (x) { var pc = toPseudoCustom(x); return { c: pc, active: true, start: pc.start, end: pc.end }; });
       var clusters = layoutDay(active.concat(cusItems));   // 课程 + 我的自定义
       var blocks = clusters.map(function (cl) {
-        return cl.items.map(function (it) { return blockHTML(it.c, true, it.col, cl.cols); }).join('');
+        return cl.items.map(function (it) { return blockHTML(it.c, true, it.col, cl.cols, dayW); }).join('');
       }).join('');
       var nowLine = '';
       if (isToday2 && todayWk === wk) nowLine = nowLineHTML();
-      cols += '<div class="daycol' + (isToday2 ? ' today' : '') + '" style="height:' + gridH + 'px">' +
+      cols += '<div class="daycol' + (isToday2 ? ' today' : '') + '" style="height:' + gridH + 'px;width:' + Math.floor(dayW) + 'px">' +
         blocks + nowLine + '</div>';
     }
 
@@ -365,13 +369,14 @@
     return clusters;
   }
 
-  function blockHTML(c, activeThisWeek, colIdx, colCount) {
+  function blockHTML(c, activeThisWeek, colIdx, colCount, dayW) {
     var col = courseColor(c);
     var top = (c.start - 1) * SH;
     var height = (c.end - c.start + 1) * SH - 5;
     colCount = colCount || 1;
     colIdx = colIdx || 0;
-    var blockW = COLW / colCount;
+    var colW = dayW || COLW;
+    var blockW = colW / colCount;
     var left = colIdx * blockW + 2;
     var width = blockW - 4;
     var posStyle = 'top:' + top + 'px;height:' + height + 'px;left:' + left + 'px;width:' + width + 'px;';
@@ -379,13 +384,13 @@
     var small = (c.end - c.start + 1) <= 1;
     var p1 = S.periods[c.start - 1];
     var tag = (!isCus && c.tag) ? '<span class="badge lab">' + esc(c.tag) + '</span>' : '';
-    var inner = '<span class="cb-name">' + (isCus ? '☆ ' : '') + esc(c.name) + '</span>';
+    var rmk = (c.weekRemark && c.weekRemark[curWeek]) ? '<span class="cb-remark">⚠' + esc(c.weekRemark[curWeek]) + '</span>' : '';
+    var inner = '<span class="cb-name"><span>' + (isCus ? '☆ ' : '') + esc(c.name) + '</span>' + (small ? '' : tag) + rmk + '</span>';
     if (!small) {
-      inner += tag +
+      inner +=
         (c.location ? '<span class="' + (isCus ? 'cb-note' : 'cb-loc') + '">' + (isCus ? '' : '📍') + esc(c.location) + '</span>' : '') +
         (c.teacher ? '<span class="cb-sub">' + esc(c.teacher) + '</span>' : '') +
-        '<span class="cb-sub">' + (S.showTimes === false ? '' : (p1.start + ' ')) + '第' + c.start + (c.end > c.start ? '-' + c.end : '') + '节</span>' +
-        (c.weekRemark && c.weekRemark[curWeek] ? '<span class="cb-remark">⚠' + esc(c.weekRemark[curWeek]) + '</span>' : '');
+        '<span class="cb-sub">' + (S.showTimes === false ? '' : (p1.start + ' ')) + '第' + c.start + (c.end > c.start ? '-' + c.end : '') + '节</span>';
     }
     return '<div class="course-block' + (activeThisWeek ? '' : ' off') + (small ? ' tiny' : '') + (isCus ? ' custom' : '') +
       '" style="' + posStyle + (isCus ? '' : 'background:' + col.bg + ';border-left-color:' + col.ac) + '">' +
