@@ -137,10 +137,8 @@ button { font-family: inherit; }
   word-break: break-all;
 }
 .course-block .cb-name { font-weight: 700; font-size: 12px; }
-.course-block .cb-loc { color: #3b4457; font-weight: 600; font-size: 11px; }
-.course-block .cb-note { color: #a16207; font-weight: 600; font-size: 10.5px; }
-.course-block .cb-loc { margin-top: 2px; line-height: 1.3; }
-.course-block .cb-loc { white-space: normal; overflow: hidden; }
+
+
 .course-block.off { filter: grayscale(.4); opacity: .4; border-style: dashed; }
 .course-block.tiny { display: flex; align-items: center; }
 .nowline {
@@ -200,9 +198,11 @@ button { font-family: inherit; }
   :root { --colw: 130px; --sh: 64px; }
 }
 
-.course-block .cb-name { display: inline-flex; align-items: center; flex-wrap: wrap; column-gap: 4px; row-gap: 1px; }
+.course-block .cb-name { display: flex; align-items: center; flex-wrap: wrap; column-gap: 4px; row-gap: 1px; width: 100%; }
+.course-block .cb-name .nm { font-weight: 700; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 auto; }
 .course-block .cb-remark { color: #b45309; font-weight: 700; font-size: 10px; white-space: nowrap; line-height: 1.2; }
-.course-block .cb-name > span { min-width: 0; }
+.course-block .cb-loc { color: #2f3542; font-size: 11px; font-weight: 600; line-height: 1.35; margin-top: 2px; }
+.course-block .cb-note { color: #a16207; font-size: 10.5px; font-weight: 600; line-height: 1.3; margin-top: 2px; }
 
 /* ---------- 自定义活动 ---------- */
 .field select {
