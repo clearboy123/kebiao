@@ -55,6 +55,7 @@
   /* ---------- 状态 ---------- */
   var now = function () { return new Date(); };
   var view = 'today';          // today | week | about
+  var curWeek = 0;              // 当前渲染的周(用于按周备注)
   var totalWeeks = Math.max(1, S.totalWeeks || 20);
 
   function todayWeekRaw() { return C.weekNumberOf(C.toISO(now()), semesterStart()); }
@@ -171,7 +172,7 @@
     }
 
     listEl.innerHTML = courses.length
-      ? courses.map(function (c) { return cardHTML(c, nowMin, ongoingCourse); }).join('')
+      ? courses.map(function (c) { return cardHTML(c, nowMin, ongoingCourse, wkRaw); }).join('')
       : '<div class="empty-tip">今天没有课，好好休息 ☕</div>';
 
     /* 明天预告 */
@@ -183,7 +184,7 @@
     if (inTerm(tmrWk)) {
       var tmCourses = dayCourses(tmrWd, tmrWk);
       tmrBox.innerHTML = '<div class="subtitle">明天 · ' + dayNameWD(tmrWd) + ' ' + fmtMDs(tmrIso) + '（第' + tmrWk + '周）</div>' +
-        '<div class="card-list">' + (tmCourses.length ? tmCourses.map(cardHTML).join('') : '<div class="empty-tip">明天没有课</div>') + '</div>';
+        '<div class="card-list">' + (tmCourses.length ? tmCourses.map(function (c) { return cardHTML(c, null, null, tmrWk); }).join('') : '<div class="empty-tip">明天没有课</div>') + '</div>';
     } else {
       tmrBox.innerHTML = '<div class="subtitle">明天 · ' + dayNameWD(tmrWd) + '</div><div class="empty-tip">明天不在学期内</div>';
     }
@@ -194,7 +195,7 @@
     var full = w.type === 'range' && w.from <= 1 && w.to >= totalWeeks && w.parity === 'all';
     return full ? '' : (C.descWeeks(w) || '');
   }
-  function cardHTML(c, nowMin, ongoingCourse) {
+  function cardHTML(c, nowMin, ongoingCourse, weekNum) {
     var p1 = S.periods[c.start - 1], p2 = S.periods[c.end - 1];
     var col = courseColor(c);
     var isNow = ongoingCourse && ongoingCourse.id === c.id;
@@ -209,6 +210,7 @@
       (c.tag ? '<span class="badge lab">' + esc(c.tag) + '</span>' : '') +
       (weeks ? '<span class="badge weeks">' + esc(weeks) + '</span>' : '') +
       '</div>' +
+      (c.weekRemark && c.weekRemark[weekNum] ? '<div class="meta" style="color:#d97706;font-size:12px;margin-top:4px">⚠ ' + esc(c.weekRemark[weekNum]) + '</div>' : '') +
       '<div class="meta">' +
       (c.teacher ? '<div class="row"><span class="ic">👤</span><span>' + esc(c.teacher) + '</span></div>' : '') +
       '<div class="row"><span class="ic">📍</span><span>' + esc(c.location || '地点待定') + '</span></div>' +
@@ -234,6 +236,7 @@
   function renderWeek() {
     readGridMetrics();
     var wk = selectedWeek();
+    curWeek = wk;
     var monday = C.parseISO(weekStartISO(wk));
     var days = [];
     for (var i = 1; i <= 7; i++) {
@@ -338,7 +341,8 @@
         (tag) +
         (c.location ? '<span class="cb-loc">📍' + esc(c.location) + '</span>' : '') +
         (c.teacher ? '<span class="cb-sub">' + esc(c.teacher) + '</span>' : '') +
-        '<span class="cb-sub">' + (S.showTimes === false ? '' : (p1.start + ' ')) + '第' + c.start + (c.end > c.start ? '-' + c.end : '') + '节</span>';
+        '<span class="cb-sub">' + (S.showTimes === false ? '' : (p1.start + ' ')) + '第' + c.start + (c.end > c.start ? '-' + c.end : '') + '节</span>' +
+        (c.weekRemark && c.weekRemark[curWeek] ? '<span class="cb-remark">⚠' + esc(c.weekRemark[curWeek]) + '</span>' : '');
     return '<div class="course-block' + (activeThisWeek ? '' : ' off') + (small ? ' tiny' : '') +
       '" style="' + posStyle + 'background:' + col.bg + ';border-left-color:' + col.ac + '">' +
       inner + '</div>';
