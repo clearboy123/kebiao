@@ -92,20 +92,20 @@ button { font-family: inherit; }
 .meta .ic { width: 14px; text-align: center; opacity: .75; font-size: 12px; }
 
 /* ---------- 本周视图 ---------- */
-.week-head { display: flex; align-items: baseline; justify-content: space-between; margin: 4px 2px 10px; gap: 8px; }
-.week-title { font-size: 19px; font-weight: 800; }
+.week-head { display: flex; align-items: baseline; justify-content: space-between; margin: 2px 2px 6px; gap: 8px; }
+.week-title { font-size: 17px; font-weight: 800; }
 .week-sub { font-size: 12px; color: var(--ink-3); }
 .grid-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); }
 .grid-wrap {
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
-  padding: 8px 8px 6px; display: inline-block; min-width: 100%;
+  padding: 6px 4px 4px; display: block; width: 100%;
   box-shadow: 0 1px 3px rgba(20,40,90,.04);
 }
 .g-head { display: flex; }
 .g-timehead { width: var(--tcolw); flex: none; }
 .day-cell {
-  width: var(--colw); flex: none; text-align: center; font-size: 13px; font-weight: 700;
-  color: var(--ink-2); padding-bottom: 8px;
+  flex: none; text-align: center; font-size: 12px; font-weight: 700;
+  color: var(--ink-2); padding-bottom: 4px; line-height: 1.15;
 }
 .day-cell .weekday { font-weight: 700; font-size: 13px; display: block; }
 .day-cell .daynum { font-weight: 500; font-size: 11px; color: var(--ink-3); }
@@ -131,13 +131,16 @@ button { font-family: inherit; }
 .daycol.today { background: rgba(61,109,242,.045); }
 .course-block {
   position: absolute; left: 3px; right: 3px; border-radius: 9px;
-  padding: 4px 6px; overflow: hidden; font-size: 11px; line-height: 1.3;
+  padding: 5px 6px; overflow: hidden; font-size: 11px; line-height: 1.35;
   border-left: 3px solid; display: flex; flex-direction: column; justify-content: flex-start;
   cursor: default;
+  word-break: break-all;
 }
-.course-block .cb-name { font-weight: 700; font-size: 11.5px; }
-.course-block .cb-sub { opacity: .8; font-size: 10px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.course-block .cb-loc { font-size: 10px; margin-top: 2px; opacity: .9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.course-block .cb-name { font-weight: 700; font-size: 12px; }
+.course-block .cb-loc { color: #3b4457; font-weight: 600; font-size: 11px; }
+.course-block .cb-note { color: #a16207; font-weight: 600; font-size: 10.5px; }
+.course-block .cb-loc { margin-top: 2px; line-height: 1.3; }
+.course-block .cb-loc { white-space: normal; overflow: hidden; }
 .course-block.off { filter: grayscale(.4); opacity: .4; border-style: dashed; }
 .course-block.tiny { display: flex; align-items: center; }
 .nowline {
@@ -148,7 +151,7 @@ button { font-family: inherit; }
   content: ''; position: absolute; left: -3px; top: -4px; width: 10px; height: 10px;
   border-radius: 50%; background: var(--danger);
 }
-.legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; font-size: 11.5px; color: var(--ink-2); padding: 0 4px; }
+.legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 5px; font-size: 11px; color: var(--ink-2); padding: 0 2px; }
 .legend span { display: inline-flex; align-items: center; gap: 5px; }
 .legend .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .legend .dot.off { border: 1.5px dashed var(--ink-3); background: transparent; }
