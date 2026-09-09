@@ -39,6 +39,14 @@
     { bg: '#eef4e0', ac: '#86a528' }
   ];
   var colorOf = {};
+  /* 周课表方块里的课程名简写（长名 → 短名），给"地点"腾地方 */
+  var SHORT_NAMES = {
+    '恶意代码分析与处理': '恶意代码',
+    '习近平新时代中国特色社会主义思想概论': '习概',
+    '信息论与编码': '信息论',
+    '入侵检测技术': '入侵检测',
+    'Linux操作系统': 'Linux'
+  };
   function courseColor(c) {
     var key = c.color || c.name;
     if (colorOf[key]) return colorOf[key];
@@ -222,7 +230,8 @@
     var isNow = ongoingCourse && ongoingCourse.id === c.id;
     var weeks = weeksLabel(c);
     var border = isCus ? '' : ';border-left-color:' + col.ac;
-    return '<div class="course-card' + (isNow ? ' now' : '') + (isCus ? ' custom' : '') + '" style="' + border.slice(1) + '">' +
+    var delAttr = isCus ? ' data-del="' + esc(String(c.id).replace(/^cus-/, '')) + '"' : '';
+    return '<div class="course-card' + (isNow ? ' now' : '') + (isCus ? ' custom' : '') + '"' + delAttr + ' style="' + border.slice(1) + '">' +
       '<div class="card-time">' +
       '<div class="pno">' + c.start + (c.end > c.start ? '-' + c.end : '') + '节</div>' +
       (S.showTimes === false ? '' : '<div class="ptime">' + p1.start + (p1.start !== p2.start ? '-' + p2.end : '~' + p2.end) + '</div>') +
@@ -267,11 +276,11 @@
     var dayHeadH = 30, wrapPadV = 16;
     var availGrid = innerH - chromeTop - chromeBottom - headH - legH - padV - dayHeadH - wrapPadV;
     // 行高取最大可用（下限保证看得清字），10节尽量铺满
-    var sh = Math.max(38, Math.min(72, Math.floor(availGrid / nPer)));
-    var tcol = S.showTimes === false ? 34 : 60;
-    var padW = 20, wrapPad = 14;
+    var sh = Math.max(42, Math.min(76, Math.floor(availGrid / nPer)));
+    var tcol = S.showTimes === false ? 24 : 56;
+    var padW = 16, wrapPad = 8;
     var usable = innerW - padW - wrapPad - tcol;
-    if (show7) { CW_MAIN = usable / (5 + 2 * 0.66); CW_WKND = CW_MAIN * 0.66; }
+    if (show7) { CW_MAIN = usable / (5 + 2 * 0.55); CW_WKND = CW_MAIN * 0.55; }
     else { CW_MAIN = usable / 5; CW_WKND = CW_MAIN; }
     SH = sh; COLW = Math.floor(CW_MAIN); TCOLW = tcol;
     var root = document.documentElement.style;
@@ -387,16 +396,14 @@
     var width = blockW - 4;
     var posStyle = 'top:' + top + 'px;height:' + height + 'px;left:' + left + 'px;width:' + width + 'px;';
     var isCus = !!c.isCustom;
-    var small = (c.end - c.start + 1) <= 1;
+    var dName = isCus ? c.name : (SHORT_NAMES[c.name] || c.name);
     var tag = (!isCus && c.tag) ? '<span class="badge lab">' + esc(c.tag) + '</span>' : '';
     var rmk = (c.weekRemark && c.weekRemark[curWeek]) ? '<span class="cb-remark">⚠' + esc(c.weekRemark[curWeek]) + '</span>' : '';
-    // 第一行：课程名（自定义带☆）+ 上机标 + 备注
-    var inner = '<span class="cb-name"><span>' + (isCus ? '☆ ' : '') + esc(c.name) + '</span>' + tag + rmk + '</span>';
-    // 第二行：上课地点/备注（重点显示，不再塞教师与节次文字）
-    inner += (c.location || isCus) ? '<span class="' + (isCus ? 'cb-note' : 'cb-loc') + '">' + (isCus ? '📝' : '📍') + esc(c.location || '') + '</span>' : '';
-    if (small && !inner.length) inner = '<span class="cb-name">' + esc(c.name) + '</span>';
-    return '<div class="course-block' + (activeThisWeek ? '' : ' off') + (isCus ? ' custom' : '') +
-      '" style="' + posStyle + (isCus ? '' : 'background:' + col.bg + ';border-left-color:' + col.ac) + '">' +
+    var inner = '<span class="cb-name"><span class="nm">' + (isCus ? '☆ ' : '') + esc(dName) + '</span>' + tag + rmk + '</span>';
+    if (c.location) inner += '<span class="' + (isCus ? 'cb-note' : 'cb-loc') + '">' + (isCus ? '' : '📍') + esc(c.location) + '</span>';
+    var delAttr = isCus ? ' data-del="' + esc(String(c.id).replace(/^cus-/, '')) + '"' : '';
+    return '<div class="course-block' + (isCus ? ' custom' : '') + '"' + delAttr +
+      ' style="' + posStyle + (isCus ? '' : 'background:' + col.bg + ';border-left-color:' + col.ac) + '">' +
       inner + '</div>';
   }
   function nowLineHTML() {
@@ -573,6 +580,18 @@
     // 结束节次默认跟随开始节次
     var cs = $('cusStart'), ce = $('cusEnd');
     if (cs && ce) cs.addEventListener('change', function () { if (+ce.value < +cs.value) ce.value = cs.value; });
+    // 点击课表中的⭐自定义块/卡片 → 确认删除
+    function askDelete(ev) {
+      var el = ev.target;
+      while (el && el !== document && !el.getAttribute) el = el.parentNode;
+      var node = ev.target && ev.target.closest ? ev.target.closest('[data-del]') : null;
+      if (!node) return;
+      ev.stopPropagation();
+      var okDel = (typeof window.confirm === 'function') ? window.confirm('删除这个自定义活动？') : true;
+      if (okDel) removeCustom(node.getAttribute('data-del'));
+    }
+    var gw = $('gridWrap'); if (gw) gw.addEventListener('click', askDelete);
+    var tl = $('todayList'); if (tl) tl.addEventListener('click', askDelete);
     // 悬浮＋号 → 打开/关闭面板
     var sheet = $('customSheet'), back = $('sheetBackdrop'), close = $('btnCloseSheet');
     function openSheet() { if (sheet) { sheet.classList.remove('hidden'); renderCustomList(); } }
