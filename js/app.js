@@ -9,6 +9,22 @@
 
   var S = window.SCHEDULE;                 // 课表数据
   var LS_KEY = 'kebiao.settings.v1';
+  var CUS_KEY = 'kebiao.customs.v1';   // 自定义活动（只存本机浏览器，别人看不到）
+
+  function loadCustoms() {
+    try { var a = JSON.parse(localStorage.getItem(CUS_KEY) || '[]'); return Array.isArray(a) ? a : []; }
+    catch (e) { return []; }
+  }
+  function saveCustoms(a) { localStorage.setItem(CUS_KEY, JSON.stringify(a)); }
+  var CUSTOMS = loadCustoms();
+  function customWeeks(x) { return x.weeks && String(x.weeks).trim() ? x.weeks : '1-' + totalWeeks + '周'; }
+  function toPseudoCustom(x) {
+    return { id: 'cus-' + x.id, name: x.title || '活动', teacher: '', location: (x.note || ''),
+             day: x.day, start: x.start, end: x.end, isCustom: true, weeks: customWeeks(x) };
+  }
+  function customsOnDay(wd, wk) {
+    return CUSTOMS.filter(function (x) { return x.day === wd && C.activeInWeek({ weeks: customWeeks(x) }, wk); });
+  }
   var SHORT = ['日', '一', '二', '三', '四', '五', '六', '日']; // 下标按 JS getDay
 
   /* 配色盘：浅底 + 强调色 */
@@ -130,7 +146,9 @@
       return;
     }
 
-    var courses = dayCourses(wd, wkRaw);
+    var courses = dayCourses(wd, wkRaw)
+      .concat(customsOnDay(wd, wkRaw).map(toPseudoCustom))
+      .sort(function (a, b) { return a.start - b.start || a.end - b.end; });
     var locate = C.locatePeriod(S.periods, nowMin);
 
     /* 进行中的课程 */
@@ -182,7 +200,9 @@
     var tmrWk = C.weekNumberOf(tmrIso, semesterStart());
     var tmrBox = $('tomorrowBlock');
     if (inTerm(tmrWk)) {
-      var tmCourses = dayCourses(tmrWd, tmrWk);
+      var tmCourses = dayCourses(tmrWd, tmrWk)
+        .concat(customsOnDay(tmrWd, tmrWk).map(toPseudoCustom))
+        .sort(function (a, b) { return a.start - b.start || a.end - b.end; });
       tmrBox.innerHTML = '<div class="subtitle">明天 · ' + dayNameWD(tmrWd) + ' ' + fmtMDs(tmrIso) + '（第' + tmrWk + '周）</div>' +
         '<div class="card-list">' + (tmCourses.length ? tmCourses.map(function (c) { return cardHTML(c, null, null, tmrWk); }).join('') : '<div class="empty-tip">明天没有课</div>') + '</div>';
     } else {
@@ -198,29 +218,30 @@
   function cardHTML(c, nowMin, ongoingCourse, weekNum) {
     var p1 = S.periods[c.start - 1], p2 = S.periods[c.end - 1];
     var col = courseColor(c);
+    var isCus = !!c.isCustom;
     var isNow = ongoingCourse && ongoingCourse.id === c.id;
     var weeks = weeksLabel(c);
-    return '<div class="course-card' + (isNow ? ' now' : '') + '" style="border-left-color:' + col.ac + '">' +
+    var border = isCus ? '' : ';border-left-color:' + col.ac;
+    return '<div class="course-card' + (isNow ? ' now' : '') + (isCus ? ' custom' : '') + '" style="' + border.slice(1) + '">' +
       '<div class="card-time">' +
       '<div class="pno">' + c.start + (c.end > c.start ? '-' + c.end : '') + '节</div>' +
       (S.showTimes === false ? '' : '<div class="ptime">' + p1.start + (p1.start !== p2.start ? '-' + p2.end : '~' + p2.end) + '</div>') +
       '</div>' +
       '<div class="card-main">' +
-      '<div class="card-title"><span style="color:' + col.ac + '">' + esc(c.name) + '</span>' +
-      (c.tag ? '<span class="badge lab">' + esc(c.tag) + '</span>' : '') +
-      (weeks ? '<span class="badge weeks">' + esc(weeks) + '</span>' : '') +
+      '<div class="card-title"><span' + (isCus ? '' : ' style="color:' + col.ac + '"') + '>' + (isCus ? '☆ ' : '') + esc(c.name) + '</span>' +
+      (isCus ? '<span class="badge weeks">我的</span>' : '') +
+      (c.tag && !isCus ? '<span class="badge lab">' + esc(c.tag) + '</span>' : '') +
+      (weeks && !isCus ? '<span class="badge weeks">' + esc(weeks) + '</span>' : '') +
       '</div>' +
       (c.weekRemark && c.weekRemark[weekNum] ? '<div class="meta" style="color:#d97706;font-size:12px;margin-top:4px">⚠ ' + esc(c.weekRemark[weekNum]) + '</div>' : '') +
       '<div class="meta">' +
       (c.teacher ? '<div class="row"><span class="ic">👤</span><span>' + esc(c.teacher) + '</span></div>' : '') +
-      '<div class="row"><span class="ic">📍</span><span>' + esc(c.location || '地点待定') + '</span></div>' +
+      (c.location ? '<div class="row"><span class="ic">' + (isCus ? '📝' : '📍') + '</span><span>' + esc(c.location) + '</span></div>' : '') +
       '</div></div></div>';
   }
-
-  /* ============================================================
-   * 视图2：本周课表（网格）
-   * ============================================================ */
+  /* 周课表布局参数 */
   var SH = 58, COLW = 102, TCOLW = 66;
+
   function readGridMetrics() {
     var rs = getComputedStyle(document.documentElement);
     var sh = parseFloat(rs.getPropertyValue('--sh'));
@@ -278,7 +299,8 @@
       var dd = days[k];
       var isToday2 = dd.iso === todayIso;
       var active = dayCourses(dd.wd, wk).map(function (c) { return { c: c, active: true, start: c.start, end: c.end }; });
-      var clusters = layoutDay(active);   // 只排本周要上的课
+      var cusItems = customsOnDay(dd.wd, wk).map(function (x) { var pc = toPseudoCustom(x); return { c: pc, active: true, start: pc.start, end: pc.end }; });
+      var clusters = layoutDay(active.concat(cusItems));   // 课程 + 我的自定义
       var blocks = clusters.map(function (cl) {
         return cl.items.map(function (it) { return blockHTML(it.c, true, it.col, cl.cols); }).join('');
       }).join('');
@@ -332,22 +354,22 @@
     var left = colIdx * blockW + 2;
     var width = blockW - 4;
     var posStyle = 'top:' + top + 'px;height:' + height + 'px;left:' + left + 'px;width:' + width + 'px;';
+    var isCus = !!c.isCustom;
     var small = (c.end - c.start + 1) <= 1;
     var p1 = S.periods[c.start - 1];
-    var tag = c.tag ? '<span class="badge lab">' + esc(c.tag) + '</span>' : '';
-    var inner = small
-      ? '<span class="cb-name">' + esc(c.name) + '</span>'
-      : '<span class="cb-name">' + esc(c.name) + '</span>' +
-        (tag) +
-        (c.location ? '<span class="cb-loc">📍' + esc(c.location) + '</span>' : '') +
+    var tag = (!isCus && c.tag) ? '<span class="badge lab">' + esc(c.tag) + '</span>' : '';
+    var inner = '<span class="cb-name">' + (isCus ? '☆ ' : '') + esc(c.name) + '</span>';
+    if (!small) {
+      inner += tag +
+        (c.location ? '<span class="' + (isCus ? 'cb-note' : 'cb-loc') + '">' + (isCus ? '' : '📍') + esc(c.location) + '</span>' : '') +
         (c.teacher ? '<span class="cb-sub">' + esc(c.teacher) + '</span>' : '') +
         '<span class="cb-sub">' + (S.showTimes === false ? '' : (p1.start + ' ')) + '第' + c.start + (c.end > c.start ? '-' + c.end : '') + '节</span>' +
         (c.weekRemark && c.weekRemark[curWeek] ? '<span class="cb-remark">⚠' + esc(c.weekRemark[curWeek]) + '</span>' : '');
-    return '<div class="course-block' + (activeThisWeek ? '' : ' off') + (small ? ' tiny' : '') +
-      '" style="' + posStyle + 'background:' + col.bg + ';border-left-color:' + col.ac + '">' +
+    }
+    return '<div class="course-block' + (activeThisWeek ? '' : ' off') + (small ? ' tiny' : '') + (isCus ? ' custom' : '') +
+      '" style="' + posStyle + (isCus ? '' : 'background:' + col.bg + ';border-left-color:' + col.ac) + '">' +
       inner + '</div>';
   }
-
   function nowLineHTML() {
     var t = now();
     var nowMin = t.getHours() * 60 + t.getMinutes();
@@ -381,6 +403,7 @@
     $('setStartDate').value = semesterStart();
     $('setWeek').value = SET.weekOverride || 0;
     $('setShowWeekend').checked = !!SET.showWeekend;
+    renderCustomList();
   }
 
   /* ============================================================
@@ -460,6 +483,66 @@
       rs = setTimeout(function () { if (view === 'week') renderWeek(); }, 200);
     });
   }
+
+  /* ========== 我的自定义活动 ========== */
+  function renderCustomList() {
+    var box = $('customList');
+    if (!box) return;
+    if (!CUSTOMS.length) {
+      box.innerHTML = '<div class="empty">还没有自定义活动。在上方添加，如“第5周周三第3-4节 踢足球”。</div>';
+      return;
+    }
+    CUSTOMS = CUSTOMS.slice().sort(function (a, b) { return a.day - b.day || a.start - b.start; });
+    box.innerHTML = CUSTOMS.map(function (x) {
+      var wkDesc = (x.weeks && String(x.weeks).trim()) ? (x.weeks.indexOf('1-') === 0 ? '全周' : x.weeks + '周') : '全周';
+      return '<div class="custom-list-item">' +
+        '<div class="info"><div class="t">☆ ' + esc(x.title) + '</div>' +
+        '<div class="s">' + dayNameWD(x.day) + ' 第' + x.start + (x.end > x.start ? '-' + x.end : '') + '节 · ' + wkDesc +
+        (x.note ? ' · ' + esc(x.note) : '') + '</div></div>' +
+        '<button class="del" data-id="' + esc(x.id) + '">删除</button></div>';
+    }).join('');
+  }
+  function addCustom() {
+    var title = $('cusTitle').value.trim();
+    if (!title) { alert('请填写活动名称'); return; }
+    var s = +$('cusStart').value, e = +$('cusEnd').value;
+    if (e < s) { alert('结束节次不能早于开始节次'); return; }
+    var weeks = $('cusWeeks').value.trim();
+    if (weeks) {
+      try { C.parseWeekSpec(weeks); } catch (err) { alert('周次格式无法识别，例如：10、5-8、单周、双周'); return; }
+    }
+    CUSTOMS.push({
+      id: String(Date.now()) + '-' + Math.floor(Math.random() * 1000),
+      title: title,
+      day: +$('cusDay').value,
+      start: s, end: e,
+      weeks: weeks,
+      note: $('cusNote').value.trim()
+    });
+    saveCustoms(CUSTOMS);
+    $('cusTitle').value = ''; $('cusNote').value = ''; $('cusWeeks').value = '';
+    renderCustomList();
+  }
+  function removeCustom(id) {
+    CUSTOMS = CUSTOMS.filter(function (x) { return String(x.id) !== String(id); });
+    saveCustoms(CUSTOMS);
+    renderCustomList();
+    if (view === 'today') renderToday();
+    if (view === 'week') renderWeek();
+  }
+  function bindCustomUI() {
+    var btn = $('btnAddCustom');
+    if (btn) btn.addEventListener('click', addCustom);
+    var list = $('customList');
+    if (list) list.addEventListener('click', function (ev) {
+      var t = ev.target;
+      if (t && t.className === 'del') removeCustom(t.getAttribute('data-id'));
+    });
+    // 结束节次默认跟随开始节次
+    var cs = $('cusStart'), ce = $('cusEnd');
+    if (cs && ce) cs.addEventListener('change', function () { if (+ce.value < +cs.value) ce.value = cs.value; });
+  }
+  bindCustomUI();
 
   bind();
   renderAll();
