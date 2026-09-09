@@ -250,28 +250,34 @@
     if (isFinite(sh) && sh > 0) SH = sh;
     if (isFinite(cw) && cw > 0) COLW = cw;
   }
-  /* 按手机屏幕把周课表压缩到一屏：纵(节次行)横(天数)都自适应 */
+  /* 按手机屏幕把周课表铺满一屏：行高尽可能大以容纳课程名+地点，且不溢出 */
   function fitGridMetrics(show7) {
     var nPer = Math.max(1, S.periods.length || 10);
     var innerH = window.innerHeight || 700;
     var innerW = window.innerWidth || 380;
-    var chromeTop = 64, chromeBottom = 76;      // 顶栏+状态栏 / 底栏+safe
-    var headArea = 74, legendArea = 32;          // 周标题区 + 图例区
-    var padH = 14, wrapPad = 14, dayHeadH = 28, buffer = 4;
-    var availGrid = innerH - chromeTop - chromeBottom - headArea - legendArea - padH - wrapPad - dayHeadH - buffer;
-    var sh = Math.max(30, Math.min(64, Math.floor(availGrid / nPer)));
-    var tcol = S.showTimes === false ? 36 : 64;
-    var usable = innerW - 20 - wrapPad - tcol - 2;
-    var cw = Math.max(42, Math.floor(usable / (show7 ? 7 : 5)));
-    SH = sh; COLW = cw; TCOLW = tcol;
+    var topbarEl = $('topbar');
+    var chromeTop = topbarEl ? topbarEl.offsetHeight + 4 : 64;     // 顶栏(含状态栏安全区)
+    var tabEl = document.querySelector('.tabbar');
+    var chromeBottom = tabEl ? tabEl.offsetHeight + 2 : 76;         // 底栏
+    var headEl = document.querySelector('.week-head');
+    var headH = (headEl && headEl.offsetHeight) ? headEl.offsetHeight + 6 : 52;
+    var legEl = $('legend');
+    var legH = (legEl && legEl.offsetHeight) ? legEl.offsetHeight + 6 : 28;
+    var padV = 22;                                // 页面上下留白
+    var dayHeadH = 30, wrapPadV = 16;
+    var availGrid = innerH - chromeTop - chromeBottom - headH - legH - padV - dayHeadH - wrapPadV;
+    // 行高取最大可用（下限保证看得清字），10节尽量铺满
+    var sh = Math.max(38, Math.min(72, Math.floor(availGrid / nPer)));
+    var tcol = S.showTimes === false ? 34 : 60;
+    var padW = 20, wrapPad = 14;
+    var usable = innerW - padW - wrapPad - tcol;
+    if (show7) { CW_MAIN = usable / (5 + 2 * 0.66); CW_WKND = CW_MAIN * 0.66; }
+    else { CW_MAIN = usable / 5; CW_WKND = CW_MAIN; }
+    SH = sh; COLW = Math.floor(CW_MAIN); TCOLW = tcol;
     var root = document.documentElement.style;
     root.setProperty('--sh', sh + 'px');
-    root.setProperty('--colw', cw + 'px');
+    root.setProperty('--colw', COLW + 'px');
     root.setProperty('--tcolw', tcol + 'px');
-    /* 列宽：工作日宽，周六日按 0.62 比例变窄，7列也能一屏 */
-    var usableW = (window.innerWidth || 380) - 20 - wrapPad - tcol - 2;
-    if (show7) { CW_MAIN = usableW / (5 + 2 * 0.62); CW_WKND = CW_MAIN * 0.62; }
-    else { CW_MAIN = Math.max(56, usableW / 5); CW_WKND = CW_MAIN; }
   }
 
   function weekStartISO(weekNum) {
@@ -382,17 +388,14 @@
     var posStyle = 'top:' + top + 'px;height:' + height + 'px;left:' + left + 'px;width:' + width + 'px;';
     var isCus = !!c.isCustom;
     var small = (c.end - c.start + 1) <= 1;
-    var p1 = S.periods[c.start - 1];
     var tag = (!isCus && c.tag) ? '<span class="badge lab">' + esc(c.tag) + '</span>' : '';
     var rmk = (c.weekRemark && c.weekRemark[curWeek]) ? '<span class="cb-remark">⚠' + esc(c.weekRemark[curWeek]) + '</span>' : '';
-    var inner = '<span class="cb-name"><span>' + (isCus ? '☆ ' : '') + esc(c.name) + '</span>' + (small ? '' : tag) + rmk + '</span>';
-    if (!small) {
-      inner +=
-        (c.location ? '<span class="' + (isCus ? 'cb-note' : 'cb-loc') + '">' + (isCus ? '' : '📍') + esc(c.location) + '</span>' : '') +
-        (c.teacher ? '<span class="cb-sub">' + esc(c.teacher) + '</span>' : '') +
-        '<span class="cb-sub">' + (S.showTimes === false ? '' : (p1.start + ' ')) + '第' + c.start + (c.end > c.start ? '-' + c.end : '') + '节</span>';
-    }
-    return '<div class="course-block' + (activeThisWeek ? '' : ' off') + (small ? ' tiny' : '') + (isCus ? ' custom' : '') +
+    // 第一行：课程名（自定义带☆）+ 上机标 + 备注
+    var inner = '<span class="cb-name"><span>' + (isCus ? '☆ ' : '') + esc(c.name) + '</span>' + tag + rmk + '</span>';
+    // 第二行：上课地点/备注（重点显示，不再塞教师与节次文字）
+    inner += (c.location || isCus) ? '<span class="' + (isCus ? 'cb-note' : 'cb-loc') + '">' + (isCus ? '📝' : '📍') + esc(c.location || '') + '</span>' : '';
+    if (small && !inner.length) inner = '<span class="cb-name">' + esc(c.name) + '</span>';
+    return '<div class="course-block' + (activeThisWeek ? '' : ' off') + (isCus ? ' custom' : '') +
       '" style="' + posStyle + (isCus ? '' : 'background:' + col.bg + ';border-left-color:' + col.ac) + '">' +
       inner + '</div>';
   }
