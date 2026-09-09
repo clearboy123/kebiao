@@ -320,8 +320,7 @@
       var d = days[h];
       var isToday = d.iso === todayIso;
       head += '<div class="day-cell' + (isToday ? ' today' : '') + '" style="width:' + Math.floor(d.wd >= 6 ? CW_WKND : CW_MAIN) + 'px">' +
-        '<span class="weekday">' + (d.wd === 7 ? '周日' : '周' + '一二三四五六'.charAt(d.wd - 1)) + '</span>' +
-        '<span class="daynum">' + fmtMDs(d.iso) + '</span></div>';
+        '<span class="weekday">' + (d.wd === 7 ? '周日' : '周' + '一二三四五六'.charAt(d.wd - 1)) + '</span></div>';
     }
 
     /* 时间列 */
