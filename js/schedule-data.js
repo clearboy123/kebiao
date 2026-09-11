@@ -41,7 +41,7 @@
       { id: 'w1', name: '入侵检测技术', teacher: '姜延丰', location: '博观楼10302', day: 3, start: 3, end: 4, weeks: { from: 1, to: 10, parity: 'all' } },
       /* ---- 周四 ---- */
       { id: 'h1', name: '网络安全', teacher: '王晓菊', location: '致远楼20403', day: 4, start: 1, end: 2, weeks: { from: 1, to: 6, parity: 'all' } },
-      { id: 'h2', name: '网络安全', teacher: '王晓菊', location: '信息楼-网络工程实验室', day: 4, start: 1, end: 2, weeks: { list: [16] }, tag: '上机', note: '课内实验·仅第16周' },
+      { id: 'h2', name: '网络安全', teacher: '王晓菊', location: '信息楼-网络工程实验室', day: 4, start: 7, end: 8, weeks: { list: [16] }, tag: '上机', note: '课内实验·仅第16周（第7-8节）' },
       { id: 'h3', name: '习近平新时代中国特色社会主义思想概论', teacher: '张玉琛', location: '致远楼20404', day: 4, start: 3, end: 4, weeks: { from: 1, to: 8, parity: 'all' } },
       { id: 'h4', name: '恶意代码分析与处理', teacher: '李永飞', location: '明德楼(东院)30704', day: 4, start: 5, end: 6, weeks: { from: 1, to: 4, parity: 'all' } },
       { id: 'h5', name: '恶意代码分析与处理', teacher: '李永飞', location: '信息楼403', day: 4, start: 5, end: 6, weeks: { from: 5, to: 13, parity: 'all' }, tag: '上机' },
